@@ -40,9 +40,12 @@ Given a set of PDFs:
 
 ---
 
-## System diagram (data + control flow)
+### System diagram (data + control flow)
+
+```mermaid
 flowchart LR
     subgraph K8s[Kubernetes Cluster]
+
         subgraph Jobs[Batch Jobs]
             SEED[seed-docs Job]
             INGEST[rag-ingest Job]
@@ -62,13 +65,14 @@ flowchart LR
 
     SEED -->|copies PDFs| DOCS
     DOCS -->|read PDFs| INGEST
-    INGEST -->|write index.pkl| DATA
+    INGEST -->|write local_index.pkl| DATA
     DATA -->|load index| QUERY
     QUERY -->|HTTP /api/generate| OLLAMA
     OLLAMA -->|completion| QUERY
     MODELS --- OLLAMA
 
-
+### Execution Sequence
+'''mermaid
 sequenceDiagram
     participant User
     participant Seed as seed-docs Job
