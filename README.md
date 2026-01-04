@@ -41,45 +41,54 @@ Given a set of PDFs:
 ---
 
 ## System diagram (data + control flow)
-                      (Kubernetes Cluster)
-┌───────────────────────────────────────────────────────────────┐
-│                                                               │
-│   ┌─────────────────────┐                                     │
-│   │  seed-docs Job       │                                     │
-│   │  copies PDFs         │                                     │
-│   └─────────┬───────────┘                                     │
-│             │                                                  │
-│             v                                                  │
-│   ┌───────────────────────────────┐                            │
-│   │ PVC: rag-docs                 │                            │
-│   │ mounted at /app/docs          │                            │
-│   └──────────────┬────────────────┘                            │
-│                  │                                              │
-│                  │ ingest                                       │
-│                  v                                              │
-│   ┌───────────────────────────────┐                            │
-│   │ rag-ingest Job                 │                            │
-│   │ reads /app/docs                │                            │
-│   │ writes /app/data/local_index.pkl│                           │
-│   └──────────────┬────────────────┘                            │
-│                  │                                              │
-│                  v                                              │
-│   ┌───────────────────────────────┐                            │
-│   │ PVC: rag-data                 │                            │
-│   │ mounted at /app/data          │                            │
-│   │ contains local_index.pkl      │                            │
-│   └──────────────┬────────────────┘                            │
-│                  │                                              │
-│                  │ query + generate                             │
-│                  v                                              │
-│   ┌───────────────────────────────┐        HTTP        ┌──────┐ │
-│   │ rag-query Job                  │──────────────────▶│Ollama│ │
-│   │ loads index + retrieves chunks │◀──────────────────│ API  │ │
-│   │ builds prompt + prints answer  │                   └──────┘ │
-│   └───────────────────────────────┘                            │
-│                                                               │
-└───────────────────────────────────────────────────────────────┘
+flowchart LR
+    subgraph K8s[Kubernetes Cluster]
+        subgraph Jobs[Batch Jobs]
+            SEED[seed-docs Job]
+            INGEST[rag-ingest Job]
+            QUERY[rag-query Job]
+        end
 
+        subgraph Storage[Persistent Volumes]
+            DOCS[(PVC: rag-docs\n/app/docs)]
+            DATA[(PVC: rag-data\n/app/data)]
+            MODELS[(PVC: ollama-models\n/root/.ollama)]
+        end
+
+        subgraph LLM[LLM Service]
+            OLLAMA[Ollama Deployment\nllama3.1:8b]
+        end
+    end
+
+    SEED -->|copies PDFs| DOCS
+    DOCS -->|read PDFs| INGEST
+    INGEST -->|write index.pkl| DATA
+    DATA -->|load index| QUERY
+    QUERY -->|HTTP /api/generate| OLLAMA
+    OLLAMA -->|completion| QUERY
+    MODELS --- OLLAMA
+
+
+sequenceDiagram
+    participant User
+    participant Seed as seed-docs Job
+    participant DocsPVC as rag-docs PVC
+    participant Ingest as rag-ingest Job
+    participant DataPVC as rag-data PVC
+    participant Query as rag-query Job
+    participant Ollama
+
+    User->>Seed: kubectl apply seed-docs
+    Seed->>DocsPVC: copy PDFs
+
+    User->>Ingest: kubectl apply rag-ingest
+    Ingest->>DocsPVC: read PDFs
+    Ingest->>DataPVC: write local_index.pkl
+
+    User->>Query: kubectl apply rag-query
+    Query->>DataPVC: load index
+    Query->>Ollama: POST /api/generate
+    Ollama-->>Query: model response
 
 
 
