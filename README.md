@@ -40,88 +40,23 @@ Given a set of PDFs:
 
 ---
 
-### System diagram (data + control flow)
+### Why Kubernetes
 
-'''mermaid
-flowchart LR
+- Even though this is local, Kubernetes is used to demonstrate production-shaped patterns:
+- Reproducible runtime via containerized Jobs (no “works on my machine” drift)
+- Pipeline staging (seed → ingest → query) as discrete jobs with explicit inputs/outputs
+- Operational debugging (logs, describe, restart one stage without touching the rest)
+- Persistent storage (PVCs for docs, indexes, and model cache)
 
-subgraph K8s["Kubernetes Cluster"]
+### Why Docker
 
-  subgraph Jobs["Batch Jobs"]
-    SEED["seed-docs Job"]
-    INGEST["rag-ingest Job"]
-    QUERY["rag-query Job"]
-  end
+- Docker gives one build artifact (rag-local:latest) that includes:
+- code + dependencies
+- scripts for ingest/query
+- (optionally) baked PDFs
+- That artifact can run locally or under Kubernetes identically.
 
-  subgraph Storage["Persistent Volumes"]
-    DOCS["PVC: rag-docs (/app/docs)"]
-    DATA["PVC: rag-data (/app/data)"]
-    MODELS["PVC: ollama-models (/root/.ollama)"]
-  end
-
-  subgraph LLM["LLM Service"]
-    OLLAMA["Ollama Deployment (llama3.1:8b)"]
-  end
-
-end
-
-SEED -->|copies PDFs| DOCS
-DOCS -->|read PDFs| INGEST
-INGEST -->|write local_index.pkl| DATA
-DATA -->|load index| QUERY
-QUERY -->|POST /api/generate| OLLAMA
-OLLAMA -->|completion| QUERY
-MODELS --> OLLAMA
-'''
-'''mermaid
-sequenceDiagram
-    participant User
-    participant Seed as seed-docs Job
-    participant DocsPVC as rag-docs PVC
-    participant Ingest as rag-ingest Job
-    participant DataPVC as rag-data PVC
-    participant Query as rag-query Job
-    participant Ollama
-
-    User->>Seed: kubectl apply seed-docs
-    Seed->>DocsPVC: copy PDFs
-
-    User->>Ingest: kubectl apply rag-ingest
-    Ingest->>DocsPVC: read PDFs
-    Ingest->>DataPVC: write local_index.pkl
-
-    User->>Query: kubectl apply rag-query
-    Query->>DataPVC: load index
-    Query->>Ollama: POST /api/generate
-    Ollama-->>Query: model response
-
-'''
-
-Why Kubernetes here
-
-Even though this is local, Kubernetes is used to demonstrate production-shaped patterns:
-
-Reproducible runtime via containerized Jobs (no “works on my machine” drift)
-
-Pipeline staging (seed → ingest → query) as discrete jobs with explicit inputs/outputs
-
-Operational debugging (logs, describe, restart one stage without touching the rest)
-
-Persistent storage (PVCs for docs, indexes, and model cache)
-
-Why Docker
-
-Docker gives one build artifact (rag-local:latest) that includes:
-
-code + dependencies
-
-scripts for ingest/query
-
-(optionally) baked PDFs
-
-That artifact can run locally or under Kubernetes identically.
-
-Model choice
+### Model choice
 LLM: llama3.1:8b (Ollama)
 
 Chosen because it’s a strong local baseline that’s easy to serve via HTTP and practical for a portfolio demo.
