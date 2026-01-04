@@ -66,20 +66,17 @@ Retrieval index: local_index.pkl
 This repo deliberately avoids external vector DBs to keep the system minimal and fully local.
 
 Quick start (Kubernetes)
-kubectl apply -f k8s/00-namespace.yaml
-kubectl -n rag-local apply -f k8s/01-pvc.yaml
-kubectl -n rag-local apply -f k8s/01b-ollama-models-pvc.yaml
-kubectl -n rag-local apply -f k8s/02-ollama.yaml
+- kubectl apply -f k8s/00-namespace.yaml
+- kubectl -n rag-local apply -f k8s/01-pvc.yaml
+- kubectl -n rag-local apply -f k8s/01b-ollama-models-pvc.yaml
+- kubectl -n rag-local apply -f k8s/02-ollama.yaml
 
-# wait until ollama pod is Running, then pull model once:
-kubectl -n rag-local exec deploy/ollama -- ollama pull llama3.1:8b
-
-kubectl -n rag-local apply -f k8s/03-seed-docs-job.yaml
-kubectl -n rag-local logs -f job/rag-seed-docs
-
-kubectl -n rag-local apply -f k8s/04-job-ingest.yaml
-kubectl -n rag-local logs -f job/rag-ingest
-
-kubectl -n rag-local apply -f k8s/05-job-query.yaml
-kubectl -n rag-local logs -f job/rag-query
+### wait until ollama pod is Running, then pull model once:
+- kubectl -n rag-local exec deploy/ollama -- ollama pull llama3.1:8b
+- kubectl -n rag-local apply -f k8s/03-seed-docs-job.yaml
+- kubectl -n rag-local logs -f job/rag-seed-docs
+- kubectl -n rag-local apply -f k8s/04-job-ingest.yaml
+- kubectl -n rag-local logs -f job/rag-ingest
+- kubectl -n rag-local apply -f k8s/05-job-query.yaml
+- kubectl -n rag-local logs -f job/rag-query
 
