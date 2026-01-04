@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: seed-docs
+  namespace: rag-local
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: seed
+          image: rag-local:latest
+          workingDir: /app
+          command:
+            - sh
+            - -lc
+            - |
+              set -e
+              echo "Copying baked PDFs from /app/docs -> /pvc/docs"
+              ls -la /app/docs || true
+              mkdir -p /pvc/docs
+              cp -v /app/docs/*.pdf /pvc/docs/ || true
+              echo "Done. Contents of /pvc/docs:"
+              ls -la /pvc/docs
+          volumeMounts:
+            - name: rag-docs
+              mountPath: /pvc/docs
+      volumes:
+        - name: rag-docs
+          persistentVolumeClaim:
+            claimName: rag-docs

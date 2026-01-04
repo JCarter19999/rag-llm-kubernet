@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rag-query
+  namespace: rag-local
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: query
+          image: rag-local:latest
+          workingDir: /app
+          command:
+            - python
+            - scripts/query.py
+            - -q
+            - Explain scaled dot-product attention.
+          env:
+            - name: OLLAMA_URL
+              value: http://ollama.rag-local.svc.cluster.local:11434/api/generate
+          volumeMounts:
+            - name: rag-data
+              mountPath: /app/data
+            - name: rag-docs
+              mountPath: /app/docs
+      volumes:
+        - name: rag-data
+          persistentVolumeClaim:
+            claimName: rag-data
+        - name: rag-docs
+          persistentVolumeClaim:
+            claimName: rag-docs

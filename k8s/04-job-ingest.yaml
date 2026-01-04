@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rag-ingest
+  namespace: rag-local
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: ingest
+          image: rag-local:latest
+          workingDir: /app
+          command:
+            - python
+            - scripts/ingest.py
+          volumeMounts:
+            - name: rag-data
+              mountPath: /app/data
+            - name: rag-docs
+              mountPath: /app/docs
+      volumes:
+        - name: rag-data
+          persistentVolumeClaim:
+            claimName: rag-data
+        - name: rag-docs
+          persistentVolumeClaim:
+            claimName: rag-docs
