@@ -42,36 +42,37 @@ Given a set of PDFs:
 
 ### System diagram (data + control flow)
 
-```mermaid
+'''mermaid
 flowchart LR
-    subgraph K8s[Kubernetes Cluster]
 
-        subgraph Jobs[Batch Jobs]
-            SEED[seed-docs Job]
-            INGEST[rag-ingest Job]
-            QUERY[rag-query Job]
-        end
+subgraph K8s["Kubernetes Cluster"]
 
-        subgraph Storage[Persistent Volumes]
-            DOCS[(PVC: rag-docs\n/app/docs)]
-            DATA[(PVC: rag-data\n/app/data)]
-            MODELS[(PVC: ollama-models\n/root/.ollama)]
-        end
+  subgraph Jobs["Batch Jobs"]
+    SEED["seed-docs Job"]
+    INGEST["rag-ingest Job"]
+    QUERY["rag-query Job"]
+  end
 
-        subgraph LLM[LLM Service]
-            OLLAMA[Ollama Deployment\nllama3.1:8b]
-        end
-    end
+  subgraph Storage["Persistent Volumes"]
+    DOCS["PVC: rag-docs (/app/docs)"]
+    DATA["PVC: rag-data (/app/data)"]
+    MODELS["PVC: ollama-models (/root/.ollama)"]
+  end
 
-    SEED -->|copies PDFs| DOCS
-    DOCS -->|read PDFs| INGEST
-    INGEST -->|write local_index.pkl| DATA
-    DATA -->|load index| QUERY
-    QUERY -->|HTTP /api/generate| OLLAMA
-    OLLAMA -->|completion| QUERY
-    MODELS --- OLLAMA
+  subgraph LLM["LLM Service"]
+    OLLAMA["Ollama Deployment (llama3.1:8b)"]
+  end
 
-### Execution Sequence
+end
+
+SEED -->|copies PDFs| DOCS
+DOCS -->|read PDFs| INGEST
+INGEST -->|write local_index.pkl| DATA
+DATA -->|load index| QUERY
+QUERY -->|POST /api/generate| OLLAMA
+OLLAMA -->|completion| QUERY
+MODELS --> OLLAMA
+'''
 '''mermaid
 sequenceDiagram
     participant User
@@ -94,7 +95,7 @@ sequenceDiagram
     Query->>Ollama: POST /api/generate
     Ollama-->>Query: model response
 
-
+'''
 
 Why Kubernetes here
 
